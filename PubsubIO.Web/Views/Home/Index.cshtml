@@ -1,0 +1,15 @@
+﻿@model List<String>
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Statustinget.cshtml";
+}
+<h2>POASTS:</h2><br />
+@foreach (var post in Model)
+{
+    <p>@post</p>
+}
+<br />
+@using(Html.BeginForm("MakePost", "Home", FormMethod.Post)) {
+    <p>Tekst: @Html.TextBox("text")</p>
+    <input type="submit" name="Poast!" value="Poast!" />
+}
