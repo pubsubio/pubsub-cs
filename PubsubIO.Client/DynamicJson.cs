@@ -11,23 +11,30 @@ namespace PubsubIO.Client
     {
         public static dynamic Parse(string json)
         {
-            JavaScriptSerializer jss = new JavaScriptSerializer();
-            jss.RegisterConverters(new JavaScriptConverter[] { new DynamicJsonConverter() });
+            var jss = new JavaScriptSerializer();
+            jss.RegisterConverters(new JavaScriptConverter[] {new DynamicJsonConverter()});
 
-            dynamic glossaryEntry = jss.Deserialize(json, typeof(object)) as dynamic;
+            dynamic glossaryEntry = jss.Deserialize(json, typeof (object));
             return glossaryEntry;
         }
 
-        class DynamicJsonConverter : JavaScriptConverter
+        #region Nested type: DynamicJsonConverter
+
+        private class DynamicJsonConverter : JavaScriptConverter
         {
+            public override IEnumerable<Type> SupportedTypes
+            {
+                get { return new ReadOnlyCollection<Type>(new List<Type>(new[] {typeof (object)})); }
+            }
+
             public override object Deserialize(IDictionary<string, object> dictionary, Type type, JavaScriptSerializer serializer)
             {
                 if (dictionary == null)
                     throw new ArgumentNullException("dictionary");
 
-                var result = ToExpando(dictionary);
+                ExpandoObject result = ToExpando(dictionary);
 
-                return type == typeof(object) ? result : null;
+                return type == typeof (object) ? result : null;
             }
 
             private static ExpandoObject ToExpando(IDictionary<string, object> dictionary)
@@ -57,9 +64,9 @@ namespace PubsubIO.Client
 
             private static ArrayList ToExpando(ArrayList obj)
             {
-                ArrayList result = new ArrayList();
+                var result = new ArrayList();
 
-                foreach (var item in obj)
+                foreach (object item in obj)
                 {
                     var valueAsDic = item as IDictionary<string, object>;
                     if (valueAsDic != null)
@@ -84,11 +91,8 @@ namespace PubsubIO.Client
             {
                 throw new NotImplementedException();
             }
-
-            public override IEnumerable<Type> SupportedTypes
-            {
-                get { return new ReadOnlyCollection<Type>(new List<Type>(new[] { typeof(object) })); }
-            }
         }
+
+        #endregion
     }
 }

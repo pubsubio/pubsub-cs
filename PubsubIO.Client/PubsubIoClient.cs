@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Cache;
 using System.Threading;
@@ -13,16 +10,9 @@ namespace PubsubIO.Client
     public class PubsubIoClient : IDisposable
     {
         protected static string PublishUrl = "{0}/{1}/publish"; //0 = server, 1 = hub
-
-        public string Server { get; private set; }
-        public int Port { get; private set; }
-        public string Subhub { get; private set; }
-        public string SessionID { get; private set; }
-
+        private readonly ManualResetEvent _hubSubscribeLock = new ManualResetEvent(false);
         private readonly JavaScriptSerializer _serializer = new JavaScriptSerializer();
         private WebSocket _socket;
-
-        private readonly ManualResetEvent _hubSubscribeLock = new ManualResetEvent(false);
 
         protected PubsubIoClient(string server, int port, string subhub)
         {
@@ -36,21 +26,33 @@ namespace PubsubIO.Client
             Connect();
         }
 
+        public string Server { get; private set; }
+        public int Port { get; private set; }
+        public string Subhub { get; private set; }
+        public string SessionID { get; private set; }
+
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+            if (_socket != null)
+                _socket.Close();
+        }
+
+        #endregion
+
         private void Connect()
         {
             _socket = new WebSocket("ws://" + Server + ":" + Port + "/json-sockets", "sample");
             _socket.OnOpen += (sender, args) =>
                                   {
-                                      var hubSubscribe = _serializer.Serialize(new {sub = Subhub});
+                                      string hubSubscribe = _serializer.Serialize(new {sub = Subhub});
                                       _socket.Send(hubSubscribe);
 
                                       _hubSubscribeLock.Set(); //Signal that we're ready to process stuff
                                   };
 
-            _socket.OnClose += (sender, args) =>
-                                   {
-                                       Console.WriteLine("Closed");
-                                   };
+            _socket.OnClose += (sender, args) => { Console.WriteLine("Closed"); };
 
             _socket.Connect();
         }
@@ -60,7 +62,7 @@ namespace PubsubIO.Client
             _hubSubscribeLock.WaitOne(1000);
             return new PubsubSubscription<T>(_socket, query);
         }
-        
+
         /// <summary>
         /// Creates a new persistent connection that can be used to subscribe.
         /// </summary>
@@ -82,14 +84,8 @@ namespace PubsubIO.Client
         /// <returns>Pubsub.IO result acknowledgement ("ok" or "ack")</returns>
         public static string Publish(string server, string hub, object document)
         {
-            var url = string.Format(PublishUrl, server, hub);
-            return HttpUtil.PostObjectAsJson(url, new { doc = document });
-        }
-
-        public void Dispose()
-        {
-            if(_socket != null)
-                _socket.Close();
+            string url = string.Format(PublishUrl, server, hub);
+            return HttpUtil.PostObjectAsJson(url, new {doc = document});
         }
     }
 }

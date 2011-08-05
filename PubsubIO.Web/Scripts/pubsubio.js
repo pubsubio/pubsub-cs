@@ -4,4 +4,3 @@ pubsub.subscribe({
 }, function (doc) {
     alert(doc.hello);
 });
-//pubsub.publish({ hello: 'world' });

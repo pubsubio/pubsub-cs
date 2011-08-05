@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace PubsubIO.Client.Model
+﻿namespace PubsubIO.Client.Model
 {
     public class PublishedDocument<T> where T : class
     {
